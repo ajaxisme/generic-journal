@@ -6,6 +6,6 @@ import React, { Fragment } from "react"
 
 export default () => (
   <Fragment>
-	Written by Abhinav Jha, a Software Engineer living in New York, working his way up to the top.
+	Written by a Software Engineer living in New York City, weaving his way up.
   </Fragment>
 )
