@@ -2,7 +2,7 @@
 title: Maintaining Order of Events in Kafka
 date: 2020-05-22
 ---
-Kafka, by definition is a distributed streaming platform designed for event driven systems. It is highly scalable and provides reliability and fault tolerance. Due to its distributed nature, it can be used as a medium for high throughput pipelines. 
+Apache Kafka, by definition, is a distributed streaming platform designed for event driven systems. It is a highly scalable, fault tolerant system. Due to its distributed nature, it is widely used for high throughput pipelines. It can support multiple publishers and subscribers and can retain data for a while after consumption, unlike legacy message queing systems. This feature where multiple subscribers can consume data concurrently is one of its salient features which has led to its wide adoption.
 
 Kafka is logically divided into segments called topics. Each topic is meant to have similar records or events. A topic consists of one or more partitions. Partitions can be considered the basic unit of a Kafka system. Every message published to Kafka is stored in one and only partition (and it's replicas across brokers). Partitioning enhances the concurrent processing of records within Kafka. A topic with more number of partitions will have a higher throughput than a topic with lower of number of partitions, all other things remaining same. While this is a requirement for many applications, the ordering is not guaranteed across partitions.
 
@@ -10,4 +10,4 @@ Each message within Kafka has a unique offset for a topic/partition pair. The of
 
 Another often overlooked requirement to maintain order is to ensure the messages are published synchronously. Most Kafka producers have the ability to batch messages together before sending it to the broker. This reduces over the network costs for high throughput systems. Multiple messages can be serialized and pushed together over the network. Synchronous publishing mandates publishing all messages within a single batch in the same order or send an error if that fails. When a single message fails to be committed or published, the entire batch is deemed failed and the producer needs to resend the entire batch again. This ensures an event is published only in the order that it occurred with respect to other events.
 
-To summarize, to maintain ordering across events within Kafka, you need to make sure that all ordered events are published to the same partition and publishing mode needs to be synchronous.
+To summarize, to maintain ordering across events within Kafka, you need to make sure that all ordered events are published to the **same partition** and publishing needs to be done in **synchronous mode**.
