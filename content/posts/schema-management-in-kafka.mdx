@@ -1,0 +1,57 @@
+---
+title: Schema management in Kafka
+date: 2020-05-27
+---
+
+Kafka stores records as binary data. When stored on the broker, it is simply a stream of bytes. There needs to be a contract between publishers and subscribers to know how to encode/decode a message in a topic. The encoding/decoding is also known as serialization/deserialization.
+
+For Kafka, a widely adopted serialization format is Avro. All messages stored within a topic should be encoded with same or similar schemas to avoid compatibility issues.
+
+## Serialization/Deserialization
+
+How to encode and publish a message (Publisher side)
+
+1. Get the avro schema
+2. Create an encoder for that schema
+3. Encode the message using schema
+4. Push the encoded bytes to the broker
+
+How to consume the message (Consumer side)
+
+1. Get the avro schema
+2. Create a decoder for the schema
+3. Read the bytes from the broker
+4. Use the decoder to recover back the message
+
+There are Avro libraries/SDK available in all major languages. Avro schema is a standard format represented as a JSON. You can read more about Avro [here](https://avro.apache.org/).
+
+If you follow the steps above, there are 2 major aspects of reading and writing from Kafka. One is creating the encoder/decoder which is made easier thanks to Avro libraries available to us. The other aspect is the contract between publishers and consumers of a topic to make sure they both have a consistent schema to refer to when reading/writing those messages. If A publishes messages using schema 1 and B tries to decode it using schema 2, it can be interpreted in a very different way which defeats the purpose of sharing the information.
+
+Once the 2 parties (or multiple) decide on the schema or format, they can store that schema locally in their application and read/write from Kafka asynchronously. However, when the publisher wishes to alter the schema by adding/deleting a field or type conversions, they have to relay that information to everyone who is associated with that topic. This is where schema management becomes important. A common store to share and store schemas would make life much easier.  
+
+## Schema Registry
+
+Confluent introduced a schema store they called Schema Registry. It is a distributed metadata store that provides a RESTful interface to store and retrieve schemas. It supports Avro, JSON, Protobuf schemas that can be shared among all consumers and publishers. It is provided as a separate service and can be deployed with or without Kafka platform.
+
+### Registering a schema
+
+A JSON based schema can be registered as a HTTP POST request. Every schema is assigned a unique **schema ID** that can serve as an identifier for a schema. If you try to register the same schema again, it will simply return the same schema ID of the original one. The schema IDs are monotonically increasing as you add more schemas.
+
+In a Kafka topic, the key and the value can both have different schemas. Schema registry supports topic schemas based on the topic name and whether it is a key or a value. The combination of topic and key/value identifier is what is called _subject_. Schemas can evolve in a compatible way to support multiple formats for a topic.
+
+### Fetching a schema
+
+A schema is identified either by the subject or schemaID. A simple GET request with a subject or a schema ID parameter will return a JSON based format that can be saved and used by the decoder.
+
+### Embedding schema ID in Kafka messages
+
+A common pratice followed across the industry is embedding schemaID to every Kafka message. The first byte is a 0x0 character followed by 4 bytes representing the schemaID and the rest of the message is the encoded bytes.
+
+Kafka message with schema ID 35 would look like below:
+
+`00 00 00 00 23 21 22 .....`
+
+The first byte is the null byte, the next 4 bytes are 0x23 (35) followed by encoded bytes.
+
+This approach doesnt add more than 4 bytes of overhead to your message and can get the schema using the schema ID for every message independently. The schema fetched can be cached to avoid fetching schema on every message and only fetched when it has evolved in the middle.
+
